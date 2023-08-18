@@ -16,7 +16,15 @@ on:
         type: string  
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
+jobs:  
+  dispatch-id:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dispatch_id != ''
+    runs-on: [ ubuntu-latest ]
+    steps:
+      - id: dispatch-id
+        name: ${{ github.event.inputs.dispatch_id }}
+        run: echo "The dispatch ID is ${{ github.event.inputs.dispatch_id }}"
+
   # This workflow contains a single job called "build"
   build:
     runs-on: ubuntu-latest
