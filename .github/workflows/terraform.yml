@@ -23,9 +23,9 @@ jobs:
     environment: ${{ github.event.inputs.environment_name }}" 
 
     steps:
-      - name: Show the target environment demo variable value  
+      - name: ${{ vars.DEMO }}  
         run: |
-          echo ${{ vars.DEMO }}
+          echo "${{ vars.DEMO }}"
           
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
