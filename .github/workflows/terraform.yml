@@ -20,8 +20,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     runs-on: ubuntu-latest
-    environment: 
-      name: ${{ github.event.inputs.environment_name }}" 
+    environment: test 
 
     steps:
       - name: ${{ vars.DEMO }}  
