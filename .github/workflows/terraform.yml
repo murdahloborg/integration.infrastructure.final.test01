@@ -24,7 +24,7 @@ jobs:
       name: ${{ github.event.inputs.environment_name }}
 
     steps:
-      - name: ${{ vars.DEMO }}  
+      - name: Show the value of DEMO variable  
         run: |
           echo "${{ vars.DEMO }}"
           
