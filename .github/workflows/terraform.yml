@@ -7,10 +7,11 @@ on:
         description: 'A unique ID provided when dispatching this workflow'
         required: false
         type: string
-      environment_name: 
-        description: 'Name of the environment'
-        required: true
-        type: string  
+  push:
+    branches:
+      - 'dev'
+      - 'test'
+      - 'main'   
 
 jobs:  
   dispatch-id:
@@ -25,7 +26,7 @@ jobs:
     name: "Terraform"
     runs-on: ubuntu-latest
     environment: 
-      name: ${{ github.event.inputs.environment_name }}
+      name: ${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -37,37 +38,74 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init --backend-config="resource_group_name=rg-infrastructure-${{ github.event.inputs.environment_name }}" --backend-config="storage_account_name=infrastatic${{ github.event.inputs.environment_name }}" --backend-config="container_name=terraformstatefiles" --backend-config="key=${{ vars.AZ_ENV_NAME }}-${{ github.event.inputs.environment_name }}-${{ vars.AZ_ENV_SUFIX }}" 
-        env:        
-          TF_VAR_ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
-          TF_VAR_ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
-          TF_VAR_ARM_SUBSCRIPTION_ID: ${{secrets.AZSUBSCRIPTION_ID}}
-          TF_VAR_ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
-
+        run: |
+          echo "The gihub env is ${{ github.ref_name }}"
+          export ARM_CLIENT_ID=$ARM_CLIENT_ID
+          export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
+          export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
+          export ARM_TENANT_ID=$ARM_TENANT_ID
+          
+          terraform init --backend-config="resource_group_name=rg-infrastructure-${{ github.ref_name }}" --backend-config="storage_account_name=infrastatic${{ github.ref_name }}" --backend-config="container_name=terraformstatefiles" --backend-config="key=${{ vars.AZ_ENV_NAME }}-${{ github.ref_name }}-${{ vars.AZ_ENV_SUFIX }}" 
+        env:     
+          ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
           TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
           TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+          TF_VAR_az_subscription_name: ${{ github.ref_name }}
               
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color 
+        run:  |
+          export ARM_CLIENT_ID=$ARM_CLIENT_ID
+          export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
+          export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
+          export ARM_TENANT_ID=$ARM_TENANT_ID
+          terraform validate -no-color 
         env:
+          ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
           TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
           TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+          TF_VAR_az_subscription_name: ${{ github.ref_name }}
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -input=false 
+        run: |
+          export ARM_CLIENT_ID=$ARM_CLIENT_ID
+          export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
+          export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
+          export ARM_TENANT_ID=$ARM_TENANT_ID
+          terraform plan -no-color -input=false 
         continue-on-error: true  
         env:
+          ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
           TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
           TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+          TF_VAR_az_subscription_name: ${{ github.ref_name }}
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
       - name: Terraform Apply        
-        run: terraform apply -auto-approve -input=false
+        run: |
+          export ARM_CLIENT_ID=$ARM_CLIENT_ID
+          export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
+          export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
+          export ARM_TENANT_ID=$ARM_TENANT_ID
+          terraform apply -auto-approve -input=false
         env:
+          ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.AZ_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
           TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
           TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+          TF_VAR_az_subscription_name: ${{ github.ref_name }}
