@@ -1,8 +1,5 @@
-# This is a basic workflow to help you get started with Actions
+name: update_env_infrustructure
 
-name: CI
-
-# Controls when the workflow will run
 on:
   workflow_dispatch:
     inputs:
@@ -15,7 +12,6 @@ on:
         required: true
         type: string  
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:  
   dispatch-id:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.dispatch_id != ''
@@ -25,26 +21,53 @@ jobs:
         name: ${{ github.event.inputs.dispatch_id }}
         run: echo "The dispatch ID is ${{ github.event.inputs.dispatch_id }}"
 
-  # This workflow contains a single job called "build"
-  build:
+  terraform:
+    name: "Terraform"
     runs-on: ubuntu-latest
     environment: 
       name: ${{ github.event.inputs.environment_name }}
-
     steps:
-      - name: Show the value of DEMO variable  
-        run: |
-          echo "${{ vars.DEMO }}"
-          
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false      
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      - name: Terraform Init
+        id: init
+        run: terraform init --backend-config="resource_group_name=rg-infrastructure-${{ github.event.inputs.environment_name }}" --backend-config="storage_account_name=infrastatic${{ github.event.inputs.environment_name }}" --backend-config="container_name=terraformstatefiles" --backend-config="key=${{ vars.AZ_ENV_NAME }}-${{ github.event.inputs.environment_name }}-${{ vars.AZ_ENV_SUFIX }}" 
+        env:        
+          TF_VAR_ARM_CLIENT_ID: ${{secrets.AZ_CLIENT_ID}}
+          TF_VAR_ARM_CLIENT_SECRET: ${{secrets.AZ_CLIENT_SECRET}}
+          TF_VAR_ARM_SUBSCRIPTION_ID: ${{secrets.AZSUBSCRIPTION_ID}}
+          TF_VAR_ARM_TENANT_ID: ${{secrets.AZ_TENANT_ID}} 
+
+          TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
+          TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+              
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color 
+        env:
+          TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
+          TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -input=false 
+        continue-on-error: true  
+        env:
+          TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
+          TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply        
+        run: terraform apply -auto-approve -input=false
+        env:
+          TF_VAR_az_env_name: ${{ vars.AZ_ENV_NAME }}
+          TF_VAR_az_env_sufix: ${{ vars.AZ_ENV_SUFIX }}
