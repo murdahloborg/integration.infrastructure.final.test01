@@ -18,3 +18,8 @@ variable "az_region" {
   type        = string
   default = "westeurope"
 }
+
+variable "env_number" {
+  description = "Environment number"
+  type        = number
+}
