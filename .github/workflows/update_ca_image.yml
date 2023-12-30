@@ -1,0 +1,20 @@
+name: update_ca_image
+
+on:
+  workflow_dispatch:
+    inputs:
+      ca_name:
+        description: 'Container application name'
+        required: false
+        type: string
+      ca_image:
+        description: 'Container image'
+        required: false
+        type: string
+
+jobs:  
+  update-ca-image:
+    runs-on: [ ubuntu-latest ]
+    steps:
+      - id: test
+        run: echo "Action was triggered! ca=${{ github.event.inputs.ca_name }} image=${{ github.event.inputs.ca_image }}"
