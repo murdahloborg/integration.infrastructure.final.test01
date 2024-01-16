@@ -1,0 +1,10 @@
+{
+  "variable": {
+    
+    "newconsumer_image": {
+      "default": "",
+      "type": "string",
+      "description": "Container application image"
+    }
+  }
+}
